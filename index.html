@@ -1,0 +1,597 @@
+<title>Inside Cüraa</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Layout concept: streaming-style browse page. Hero, then three swipe rows, then one-page sections; every card opens a full-screen detail sheet. */
+:root{
+  --bg:#0b0b0d; --surface:#151518; --surface2:#1e1e23; --line:#2b2b32;
+  --fg:#f6f3ef; --muted:#a8a4ab; --red:#e5222d; --red-ink:#ffffff;
+  --t-verified:#4cc38a; --t-snapshot:#e9b44c; --t-observed:#5aa9e6; --t-hypo:#b48cf0; --t-unknown:#9a97a0;
+  --ok:#4cc38a;
+  --font-display:'Big Shoulders Display','Arial Narrow',Impact,sans-serif;
+  --font-body:'Figtree',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){
+  --bg:#f5f2ee; --surface:#ffffff; --surface2:#ece8e3; --line:#d9d4cd;
+  --fg:#17151a; --muted:#625e66; --red:#c9111c;
+  --t-verified:#12804f; --t-snapshot:#946400; --t-observed:#1f6aa8; --t-hypo:#6e3fc0; --t-unknown:#6b6870;
+  --ok:#12804f; color-scheme:light}}
+:root[data-theme="light"]{
+  --bg:#f5f2ee; --surface:#ffffff; --surface2:#ece8e3; --line:#d9d4cd;
+  --fg:#17151a; --muted:#625e66; --red:#c9111c;
+  --t-verified:#12804f; --t-snapshot:#946400; --t-observed:#1f6aa8; --t-hypo:#6e3fc0; --t-unknown:#6b6870;
+  --ok:#12804f; color-scheme:light}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:16px;line-height:1.55;
+  padding-block:0 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--bg)}
+h1,h2,h3,h4{font-family:var(--font-display);font-weight:800;line-height:1;margin:0;text-wrap:balance;letter-spacing:.01em}
+p{margin:0}
+a{color:inherit}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.wrap{max-width:1100px;margin:0 auto}
+/* top bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;display:flex;align-items:center;gap:16px;padding:12px 0;background:var(--bg);border-bottom:1px solid var(--line)}
+.logo{font-family:var(--font-display);font-weight:900;font-size:28px;letter-spacing:.08em;color:var(--red)}
+.bar nav{display:flex;gap:4px;margin-left:auto;overflow-x:auto;scrollbar-width:none}
+.bar nav a{white-space:nowrap;text-decoration:none;color:var(--muted);font-size:14px;font-weight:600;padding:8px 10px;border-radius:6px}
+.bar nav a:hover{color:var(--fg)}
+.themebtn{border:1px solid var(--line);background:var(--surface);border-radius:8px;width:40px;height:40px;flex:none}
+/* hero */
+.hero{position:relative;margin-top:16px;border-radius:14px;overflow:hidden;background:#0d0708;color:#f6f3ef;min-height:430px;display:grid;grid-template-columns:1.15fr .85fr;isolation:isolate}
+.hero::before{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(70% 90% at 82% 40%,rgba(229,34,45,.55),rgba(229,34,45,0) 62%),linear-gradient(120deg,#0a0a0c 40%,#2a0a0e)}
+.hero-copy{padding:36px 28px;display:flex;flex-direction:column;gap:16px;justify-content:center;min-width:0}
+.eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:#ff8d94}
+.hero h1{font-size:clamp(40px,7vw,72px);font-weight:900;text-transform:uppercase}
+.hero .tagline{font-family:var(--font-display);font-weight:700;font-size:clamp(22px,3.6vw,34px);line-height:1.05;color:#fff;text-wrap:balance}
+.hero p.sub{color:#d6d1d4;max-width:52ch}
+.btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
+.btn{border:0;border-radius:8px;padding:14px 20px;font-weight:700;font-size:16px;min-height:48px;display:inline-flex;align-items:center;gap:8px}
+.btn.primary{background:#fff;color:#111}
+.btn.ghost{background:rgba(255,255,255,.16);color:#fff}
+.btn.red{background:var(--red);color:var(--red-ink)}
+.hero-art{display:flex;align-items:center;justify-content:center;padding:16px}
+.hero-art svg{width:100%;max-width:340px;height:auto}
+.proof{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#cfc9cd;display:flex;gap:8px;align-items:center}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--red)}
+/* rows */
+.row{margin-top:36px}
+.row h2{font-size:28px;margin-bottom:12px;text-transform:uppercase}
+.row .hint{color:var(--muted);font-size:14px;margin:-6px 0 12px}
+.rail{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x proximity;padding:4px 2px 14px;margin:0 -2px;scrollbar-width:thin}
+.card{flex:0 0 min(64vw,250px);scroll-snap-align:start;border:1px solid var(--line);background:var(--surface);border-radius:10px;overflow:hidden;text-align:left;padding:0;display:flex;flex-direction:column;transition:transform .18s,border-color .18s}
+.card:hover{transform:translateY(-4px) scale(1.02);border-color:var(--red)}
+.thumb{aspect-ratio:16/10;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#1a1012,#3a0e13);position:relative;color:#fff}
+.thumb svg{width:46%;height:auto;max-height:80%}
+.thumb .num{position:absolute;left:10px;bottom:6px;font-family:var(--font-display);font-weight:900;font-size:44px;opacity:.9;line-height:1}
+.card-b{padding:12px 14px 14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.card-b h3{font-size:22px;text-transform:uppercase}
+.card-b p{font-size:13.5px;color:var(--muted)}
+/* tags */
+.tag{display:inline-flex;align-items:center;gap:6px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;border:1px solid currentColor;border-radius:999px;padding:2px 9px;white-space:nowrap}
+.tag.verified{color:var(--t-verified)}.tag.snapshot{color:var(--t-snapshot)}.tag.observed{color:var(--t-observed)}.tag.hypo{color:var(--t-hypo)}.tag.unknown{color:var(--t-unknown)}
+/* sections */
+section.block{margin-top:56px;scroll-margin-top:72px}
+section.block>h2{font-size:clamp(30px,5vw,46px);text-transform:uppercase;margin-bottom:8px}
+section.block>.lead{color:var(--muted);max-width:62ch;margin-bottom:18px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.grid2>*,.grid3>*{min-width:0}
+/* modal */
+.sheet{position:fixed;inset:0;z-index:80;background:var(--bg);overflow-y:auto;overscroll-behavior:contain}
+.sheet-in{max-width:860px;margin:0 auto;padding:0 max(16px,env(safe-area-inset-left,0px)) 80px max(16px,env(safe-area-inset-right,0px))}
+.sheet-top{position:sticky;top:0;z-index:2;background:var(--bg);padding:calc(10px + env(safe-area-inset-top,0px)) 0 10px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line)}
+.sheet-top .k{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.close{border:1px solid var(--line);background:var(--surface);border-radius:8px;height:44px;padding:0 16px;font-weight:700}
+.sheet h2{font-size:clamp(36px,8vw,56px);text-transform:uppercase;margin:22px 0 10px}
+.sheet h3{font-size:22px;text-transform:uppercase;margin:26px 0 10px;color:var(--red)}
+.sheet p.lead{color:var(--muted);font-size:17px}
+.vis{margin-top:16px;border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:16px}
+.ev{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.ev li{display:flex;gap:10px;align-items:flex-start;padding:12px;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.ev li>div{min-width:0}
+.src{font-size:12px;color:var(--muted);text-decoration:underline;text-underline-offset:2px;white-space:nowrap}
+.next{margin-top:26px;border-radius:12px;padding:16px;background:var(--red);color:var(--red-ink)}
+.next b{display:block;font-size:12px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:4px;opacity:.9}
+/* bars */
+.bars{display:flex;flex-direction:column;gap:9px}
+.brow{display:grid;grid-template-columns:minmax(96px,34%) 1fr;gap:10px;align-items:center;font-size:13.5px}
+.brow .lab{min-width:0;line-height:1.25}
+.brow .lab small{display:block;color:var(--muted);font-size:11.5px}
+.track{position:relative;height:22px;background:var(--surface2);border-radius:5px;overflow:hidden}
+.fill{position:absolute;inset:0 auto 0 0;background:var(--red);border-radius:5px;transition:width .6s}
+.fill.alt{background:var(--t-observed)}.fill.mute{background:var(--t-unknown)}
+.val{position:absolute;right:6px;top:0;line-height:22px;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+.val.in{color:#fff}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--muted);margin-top:12px}
+.sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px}
+/* tables */
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:560px}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;font-variant-numeric:tabular-nums}
+th{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+tr.us td{background:color-mix(in srgb,var(--red) 12%,transparent)}
+/* funnel, tabs, accordion */
+.funnel{display:flex;flex-direction:column;gap:8px;align-items:center}
+.stage{border:1px solid var(--line);background:var(--surface2);border-radius:8px;padding:14px 12px;font-family:var(--font-display);font-weight:800;font-size:22px;text-transform:uppercase;text-align:center;width:var(--w)}
+.stage[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:#fff}
+.tabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin-bottom:14px;overflow-x:auto}
+.tabs button{background:none;border:0;border-bottom:3px solid transparent;padding:12px 14px;font-weight:700;color:var(--muted);white-space:nowrap;min-height:48px}
+.tabs button[aria-selected="true"]{color:var(--fg);border-color:var(--red)}
+details{border:1px solid var(--line);border-radius:10px;background:var(--surface);margin-top:10px}
+summary{cursor:pointer;padding:14px 16px;font-weight:700;list-style:none;display:flex;justify-content:space-between;gap:10px;min-height:48px;align-items:center}
+summary::after{content:"+";font-size:22px;color:var(--red)}
+details[open] summary::after{content:"–"}
+details .in{padding:0 16px 16px}
+.check{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line)}
+.check input{width:22px;height:22px;accent-color:var(--red);flex:none;margin-top:2px}
+.wire{border:1px dashed var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px;font-size:12.5px;background:var(--bg)}
+.wire .blk{background:var(--surface2);border-radius:6px;padding:10px;color:var(--muted)}
+.wire .blk.new{background:color-mix(in srgb,var(--red) 18%,var(--surface2));color:var(--fg);border:1px solid var(--red)}
+.slide{min-height:280px;display:flex;flex-direction:column;gap:12px;justify-content:center}
+.slide h3{margin:0;color:var(--fg);font-size:clamp(28px,6vw,42px)}
+.pager{display:flex;gap:8px;align-items:center;margin-top:16px;flex-wrap:wrap}
+.pips{display:flex;gap:6px;margin-left:auto}
+.pip{width:22px;height:5px;border-radius:3px;background:var(--line)}.pip.on{background:var(--red)}
+footer{margin-top:60px;border-top:1px solid var(--line);padding-top:20px;color:var(--muted);font-size:13px}
+footer ul{columns:2;padding-left:18px;margin:10px 0}
+@media (max-width:720px){
+  .hero{grid-template-columns:1fr;min-height:0}.hero-art{order:-1;padding:20px 20px 0}.hero-art svg{max-width:210px}
+  .grid2,.grid3{grid-template-columns:1fr}
+  footer ul{columns:1}
+  .bar nav{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+<div class="wrap">
+  <header class="bar">
+    <span class="logo">CÜRAA</span>
+    <nav aria-label="Sections">
+      <a href="#r1">Investigation</a><a href="#r2">Catalogue</a><a href="#r3">Evidence</a><a href="#know">Known vs unknown</a><a href="#sources">Sources</a>
+    </nav>
+    <button class="themebtn" id="themeBtn" aria-label="Switch light or dark theme" title="Theme">◐</button>
+  </header>
+
+  <section class="hero" aria-label="Featured investigation">
+    <div class="hero-copy">
+      <span class="eyebrow">Inside Cüraa · A founder-office case file</span>
+      <h1>The Conversion Investigation</h1>
+      <p class="tagline">The product is on the shelf. What makes someone choose it?</p>
+      <p class="sub">An evidence-led investigation into Cüraa's products, customers, competitive position, and growth opportunities.</p>
+      <div class="btns">
+        <button class="btn primary" data-open="gap">▶ Explore the Investigation</button>
+        <button class="btn ghost" data-open="brief">Read the Founder Brief</button>
+      </div>
+      <div class="proof"><span class="dot"></span>Independent research · Public evidence</div>
+    </div>
+    <div class="hero-art" aria-hidden="true">
+      <svg viewBox="0 0 320 340" fill="none">
+        <ellipse cx="160" cy="312" rx="130" ry="14" fill="#000" opacity=".45"/>
+        <rect x="70" y="236" width="180" height="70" rx="14" fill="#1c1c20" stroke="#3a3a42"/>
+        <circle cx="110" cy="271" r="13" fill="#e5222d"/><circle cx="150" cy="271" r="8" fill="#2a2a30" stroke="#55555e"/>
+        <rect x="190" y="262" width="40" height="18" rx="9" fill="#2a2a30" stroke="#55555e"/>
+        <path d="M96 236 L112 70 H208 L224 236 Z" fill="#ffffff" opacity=".1" stroke="#d9d4d8" stroke-width="2"/>
+        <path d="M100 200 L106 150 H214 L220 200 Z" fill="#e5222d" opacity=".75"/>
+        <rect x="104" y="48" width="112" height="22" rx="6" fill="#26262c" stroke="#55555e"/>
+        <path d="M224 100 H262 Q282 100 282 122 V170 Q282 190 262 190 H222" stroke="#d9d4d8" stroke-width="7" stroke-linecap="round"/>
+        <g stroke="#fff" stroke-width="2" opacity=".5"><path d="M120 92 V150"/><path d="M130 92 V140"/></g>
+      </svg>
+    </div>
+  </section>
+
+  <section class="row" id="r1" aria-labelledby="h-r1">
+    <h2 id="h-r1">Continue the Investigation</h2>
+    <p class="hint">Swipe sideways. Tap any card to open it.</p>
+    <div class="rail" id="rail1"></div>
+  </section>
+
+  <section class="row" id="r2" aria-labelledby="h-r2">
+    <h2 id="h-r2">Inside the Product Catalogue</h2>
+    <p class="hint">Amazon ratings and counts are captured snapshots, not sales.</p>
+    <div class="rail" id="rail2"></div>
+  </section>
+
+  <section class="row" id="r3" aria-labelledby="h-r3">
+    <h2 id="h-r3">What the Evidence Says</h2>
+    <p class="hint">Each card separates what was observed from what is only a hypothesis.</p>
+    <div class="rail" id="rail3"></div>
+  </section>
+
+  <section class="block" id="know" aria-labelledby="h-know">
+    <h2 id="h-know">What we know vs. what we still need to prove</h2>
+    <p class="lead">The honest status of this case file. Tap each group to open it.</p>
+    <div id="knowBox"></div>
+  </section>
+
+  <footer id="sources">
+    <b>Sources</b>
+    <ul id="srcList"></ul>
+    <p>Independent portfolio research. Not affiliated with or endorsed by Cüraa, and not an official streaming-service product. Prices, ratings and review counts are captured snapshots and need rechecking before external use. Snapshots come from a research workspace open only to its owner; figures marked user-reported need rechecking on the live page.</p>
+  </footer>
+</div>
+
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden>
+  <div class="sheet-in">
+    <div class="sheet-top"><span class="k" id="sheetKicker"></span><button class="close" id="closeBtn">✕ Close</button></div>
+    <div id="sheetBody"></div>
+  </div>
+</div>
+<script>
+const S={
+ hub:{l:'Research workspace hub (owner access only)'},
+ site:{l:'Snapshot: own website, 27 Oct 2026 (user-reported)'},
+ webrev:{l:'Notes: website reviews (one visit)'},
+ amz:{l:'Snapshot: Amazon prices, 27 Oct 2026 (user-reported)'},
+ amzrev:{l:'Snapshot: Amazon reviews, 27 Oct 2026 (user-reported)'},
+ comp:{l:'Earlier competitor benchmark (unverified)'},
+ matrix:{l:'Performance matrix (owner access only)'},
+ chan:{l:'Notes: sales channels'},
+ press:{l:'Franchise India: Series A',u:'https://www.franchiseindia.com/insights/en/news/kitchen-and-lifestyle-brand-craa-bags-rs-40-cr-in-series-a-round-led-by-3one4-capital.59585'},
+ inc42:{l:'Inc42: Series A',u:'https://inc42.com/buzz/d2c-kitchenware-startup-curaa-raises-%E2%82%B9'+'40-cr-to-expand-portfolio/'},
+ philips:{l:'Philips India: HL7773/02',u:'https://domesticappliances.philips.co.in/products/philips-800-watt-powerful-motor-mixer-grinder-with-microgrind-technology-in-green-colour-hl7773-02'},
+ wonder:{l:'Wonderchef: Capri 550W',u:'https://www.wonderchef.com/hi/products/wonderchef-capri-mixer-grinder-black-red-5-years-warranty'},
+ bosch:{l:'Reliance Digital: Bosch TrueMixx Pro',u:'https://www.reliancedigital.in/product/bosch-truemixx-pro-mgm8842min-mixer'},
+ sujata:{l:'Price tracker: Sujata Dynamix',u:'https://www.pricebefore.com/sujata-dynamix-900-w-mixer-grinder-p1151858.html'},
+ blendlab:{l:'Listing aggregator: BlendLab Pro 2.0 specs',u:'https://www.indiafreestuff.in/yfl-home-blendlab-pro-20-mixer-grinder-for-kitchen-1200w-blender-with-2-unbreakable-jars-100-copper-motor-smoothie-maker-with-preset-blend-modes-laser-cut-ss-blades--blender-for-smoothies-red'},
+ mrp:{l:'Price trackers, brand sites and retailer pages, Oct 2026'},
+ mark:{l:'MarkNtel Advisors: India Mixer Grinders Market, 2026 to 2032'},
+ noir:{l:'Noir and Blanco: E-commerce Conversion Benchmark (Dec 2025)'},
+ razor:{l:'Razorpay D2C guide (figures unsourced)'},
+ click:{l:'ClickPost guide quoting Baymard Institute'},
+ yfl:{l:'Public listing pages: Pro 2.0 under YFL Home'}
+};
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const TAGS={verified:'Reported in public press',snapshot:'Captured snapshot',observed:'Review observation',hypo:'Hypothesis',unknown:'Unknown'};
+const tag=k=>`<span class="tag ${k}">${TAGS[k]}</span>`;
+const link=k=>!S[k]?'':S[k].u?`<a class="src" href="${S[k].u}" target="_blank" rel="noopener">↗ ${esc(S[k].l)}</a>`:`<span class="src" style="text-decoration:none">${esc(S[k].l)}</span>`;
+const evList=a=>`<ul class="ev">${a.map(e=>`<li>${tag(e.k)}<div>${e.t} ${(e.s||[]).map(link).join(' ')}</div></li>`).join('')}</ul>`;
+const bars=(rows,o={})=>{const mx=o.max||Math.max(...rows.map(r=>r.v));
+ return `<div class="bars">${rows.map(r=>{const w=Math.max(3,r.v/mx*100);
+ return `<div class="brow"><div class="lab">${esc(r.l)}${r.sub?`<small>${esc(r.sub)}</small>`:''}</div><div class="track"><div class="fill ${r.c||''}" style="width:${w}%"></div><span class="val ${w>82?'in':''}">${esc(r.txt??r.v)}</span></div></div>`}).join('')}</div>`};
+const detail=d=>`
+ <div style="margin-top:20px;display:flex;gap:8px;flex-wrap:wrap">${tag(d.tag||'snapshot')}</div>
+ <h2 id="sheetTitle">${d.title}</h2>
+ <p class="lead">${d.lead}</p>
+ ${d.vis?`<div class="vis">${d.vis}</div>`:''}
+ ${d.extra||''}
+ <h3>Evidence</h3>${evList(d.ev)}
+ <h3>What it might mean</h3><p>${d.interp}</p>
+ <div class="next"><b>Next question to investigate</b>${d.next}</div>`;
+const IC={
+ blender:'<path d="M16 6h32l-4 34H20z"/><path d="M14 40h36v10a4 4 0 0 1-4 4H18a4 4 0 0 1-4-4z"/><path d="M48 14h6v14h-6"/>',
+ chopper:'<rect x="18" y="26" width="28" height="26" rx="4"/><path d="M32 8v18M24 12h16"/><path d="M22 38h20"/>',
+ frother:'<path d="M32 6v30"/><path d="M22 36h20l-3 20h-14z"/><path d="M24 14c0 8 16 8 16 0"/>',
+ dani:'<circle cx="32" cy="32" r="22"/><circle cx="20" cy="26" r="5"/><circle cx="44" cy="26" r="5"/><circle cx="26" cy="42" r="5"/><circle cx="40" cy="42" r="5"/>',
+ grinder:'<path d="M26 6h12v8H26z"/><path d="M22 14h20l-2 42H24z"/><path d="M26 30h12"/>',
+ gap:'<path d="M8 12h48L38 34v18l-12 4V34z"/>',
+ voice:'<path d="M8 12h48v30H26l-12 10V42H8z"/><path d="M18 24h28M18 32h18"/>',
+ perf:'<path d="M8 54V30M24 54V14M40 54V38M56 54V22"/>',
+ vs:'<path d="M10 14l16 36M54 14L38 50"/><path d="M26 32h12"/>',
+ flask:'<path d="M24 8h16M28 8v18L12 52a4 4 0 0 0 4 6h32a4 4 0 0 0 4-6L36 26V8"/>',
+ doc:'<path d="M16 6h26l10 10v42H16z"/><path d="M24 28h20M24 38h20M24 48h12"/>',
+ price:'<path d="M8 34L34 8h22v22L30 56z"/><circle cx="44" cy="20" r="3"/>',
+ shield:'<path d="M32 6l20 8v18c0 14-9 22-20 26C21 54 12 46 12 32V14z"/><path d="M24 32l6 6 12-14"/>',
+ hole:'<circle cx="32" cy="32" r="22"/><path d="M32 22v14"/><circle cx="32" cy="44" r="1.5"/>',
+ diff:'<rect x="8" y="14" width="20" height="36" rx="3"/><rect x="36" y="14" width="20" height="36" rx="3"/><path d="M14 26h8M42 26h8M14 34h8M42 34h8"/>'
+};
+const icon=k=>`<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">${IC[k]||IC.doc}</svg>`;
+const FUN=[
+ {n:'Website visit',need:'Sessions by source (organic, paid, creator or social, marketplace referral, direct), new vs returning visitors.',h:['Press reports say Amazon contributes the largest share of sales, so own-site visitors may be a smaller, different audience. Check before sizing the problem.'],hk:'unknown'},
+ {n:'Product page',need:'Product-page views, scroll depth, video plays, time on page, exit rate, per product.',h:['Price-value perception: does the price feel justified against better-known brands?','Differentiation: is it clear what this product does that a familiar mixer-grinder does not?','Performance expectations: can a shopper picture the result?'],hk:'hypo'},
+ {n:'Add to cart',need:'Add-to-cart rate = sessions with an add-to-cart ÷ product-page sessions, per product.',h:['Durability and warranty reassurance may not be visible at the moment of decision.','Reviews sit in a shared homepage section, so product-specific proof may be hard to find (observed in the website notes).'],hk:'hypo'},
+ {n:'Checkout',need:'Checkout starts, checkout completions, payment failures, step-by-step drop-off, delivery and return messaging shown.',h:['Delivery time and cost clarity.','Return and refund confidence.','Payment options and trust at the final step.'],hk:'hypo'},
+ {n:'Purchase',need:'Orders, revenue, average order value, returns, cancellations, support contacts, by product and channel.',h:['Returns or cancellations could show expectations that the product page did not set.'],hk:'hypo'}
+];
+const widths=['100%','86%','72%','58%','44%'];
+const funnelHTML=()=>`
+ <div class="funnel" role="group" aria-label="Purchase funnel stages">${FUN.map((f,i)=>`<button class="stage" style="--w:${widths[i]}" data-stage="${i}" aria-pressed="${i==1}">${f.n}</button>`).join('')}</div>
+ <p style="text-align:center;color:var(--muted);font-size:13px;margin-top:10px">No counts are shown. Cüraa's internal analytics are not available, so no visitor, conversion or sales numbers are invented here.</p>
+ <div id="fDetail" class="panel" style="margin-top:14px" aria-live="polite"></div>`;
+const stageDetail=i=>{const f=FUN[i];return `<h4 style="font-size:26px;text-transform:uppercase">${f.n}</h4>
+ <p style="margin:8px 0"><b>Data needed:</b> ${f.need}</p>
+ <p style="margin:10px 0 6px"><b>Possible hesitations</b> ${tag(f.hk)}</p><ul style="margin:0;padding-left:20px">${f.h.map(x=>`<li>${x}</li>`).join('')}</ul>`};
+const comp=[
+ {b:'Cüraa BlendLab Pro 2.0',us:1,p:5249,w:1200,jar:'2 (1000 ml, 700 ml)',war:'2 years recorded',proof:'Amazon 4.4, 493 reviews',pt:'₹5,249 Amazon; ₹5,499–5,549 own site'},
+ {b:'Philips HL7773/02',p:4199,w:800,jar:'3 stainless-steel',war:'2 years recorded',proof:'4.4, about 5,000 reviews in earlier benchmark, unverified',pt:'₹4,199 brand site (MRP ₹5,295)'},
+ {b:'Philips PowerPro HL771302',p:4688,w:1000,jar:'3',war:'Not captured',proof:'Not captured',pt:'₹4,688 Reliance Digital (MRP ₹6,695)'},
+ {b:'Wonderchef Capri',p:2799,w:550,jar:'3',war:'Title says 5 years on the motor; snapshot recorded 2 years',proof:'Not verified',pt:'₹2,799 brand site (MRP ₹4,500)'},
+ {b:'Sujata Dynamix',p:8083,w:900,jar:'3',war:'Listings show 1 or 2 years',proof:'Not verified',pt:'₹8,083 Flipkart (MRP ₹11,430)'},
+ {b:'Bosch TrueMixx Pro',p:6499,w:1000,jar:'4 (1.5 L, 1.5 L, 1.0 L, 0.4 L)',war:'2 years',proof:'4.1 on Croma; earlier benchmark 4.1 from 7 reviews',pt:'₹6,499 Reliance Digital (MRP ₹10,590)'}
+];
+const compBars=m=>{
+ const rows=comp.map(c=>{const b={l:c.b,c:c.us?'':'mute'};
+  if(m==='w')return {...b,v:c.w,txt:c.w+' W'};
+  if(m==='pw')return {...b,v:c.p/c.w,txt:'₹'+(c.p/c.w).toFixed(2)+' / W'};
+  return {...b,v:c.p,txt:'₹'+c.p.toLocaleString('en-IN')}});
+ if(m==='pw')rows.sort((a,b)=>a.v-b.v);
+ return bars(rows,{max:m==='w'?1300:m==='pw'?10:9000})};
+const compHTML=()=>`
+ <div class="tabs" role="tablist" aria-label="Chart metric">
+  <button role="tab" data-metric="p" aria-selected="true">Selling price</button>
+  <button role="tab" data-metric="w" aria-selected="false">Motor power</button>
+  <button role="tab" data-metric="pw" aria-selected="false">₹ per watt</button></div>
+ <div id="compChart">${compBars('p')}</div>
+ <div class="legend"><span><i class="sw" style="background:var(--red)"></i>Cüraa</span><span><i class="sw" style="background:var(--t-unknown)"></i>Mixer-grinders</span><span>Watts are not a measure of performance.</span></div>`;
+const compTable=()=>`<div class="scroll"><table><thead><tr><th>Product</th><th>Selling price</th><th>Power</th><th>Jars</th><th>Warranty</th><th>Customer proof</th></tr></thead><tbody>${comp.map(c=>`<tr class="${c.us?'us':''}"><td><b>${c.b}</b></td><td>${c.pt}</td><td>${c.w} W</td><td>${c.jar}</td><td>${c.war}</td><td>${c.proof}</td></tr>`).join('')}</tbody></table></div>`;
+const AMZ=[
+ {l:'Manual Vegetable Chopper',v:1075,r:'4.6'},{l:'Rechargeable Coffee Frother',v:979,r:'4.3'},{l:'Wooden Masala Dani',v:517,r:'4.1'},
+ {l:'Blend Pro 2.0',sub:'listing appears as YFL Home',v:493,r:'4.4'},{l:'BlendLab Mixer Grinder',v:471,r:'3.9'},{l:'Electric Pepper Grinder',v:437,r:'4.2'},
+ {l:'Electric Chopper (₹8,999 listing)',sub:'may duplicate another listing',v:415,r:'3.8'},{l:'Electric Chopper (₹2,349 listing)',v:343,r:'4.6'},
+ {l:'Steel Masala Dani',v:292,r:'4.1'},{l:'Manual Kitchen Chopper',v:182,r:'4.5'},{l:'Measuring Spoons',v:105,r:'4.5'},
+ {l:'Blender Mixer Grinder (₹3,399)',v:94,r:'3.8'},{l:'Grill Neo',v:56,r:'4.0'},{l:'Hand Mixer',v:42,r:'4.4'}
+];
+const amzBars=()=>bars(AMZ.map(a=>({l:a.l,sub:a.sub,v:a.v,txt:a.v.toLocaleString('en-IN')+' · '+a.r+'★',c:+a.r<4?'alt':''})),{max:1100});
+const CH=[['Hand Mixer',2749,1810,-34.2],['IndiPro Induction (black)',4699,4399,-6.4],['BlendLab Pro 2.0',5549,5249,-5.4],['Rechargeable Frother',815,815,0],['Pepper Grinder',1099,1099,0],['Grill Neo',1199,1199,0],['Wooden Masala Dani',1699,1707,0.5],['BlendLab (black)',3449,3499,1.4],['Retro Kettle 1.8 L',3699,3799,2.7],['ChopLab Neo',899,960,6.8],['Measuring Spoons',349,379,8.6],['Steel Masala Dani',1099,1199,9.1]];
+const chBars=()=>bars(CH.map(r=>({l:r[0],sub:'Own ₹'+r[1].toLocaleString('en-IN')+' · Amazon ₹'+r[2].toLocaleString('en-IN'),v:Math.abs(r[3]),txt:(r[3]>0?'+':r[3]<0?'−':'')+Math.abs(r[3]).toFixed(1)+'%',c:r[3]<0?'alt':'mute'})),{max:36});
+const CARDS={};
+CARDS.gap={n:'01',ic:'gap',title:'The Conversion Gap',blurb:'Where might high-intent shoppers drop out?',kick:'Chapter 1 · The funnel',
+ build:()=>detail({tag:'unknown',title:'The Conversion Gap',lead:'The central question: where does the purchase journey lose high-intent shoppers, and what would help them decide? Tap a stage to see the data needed and the hesitations worth testing.',
+  vis:funnelHTML(),
+  ev:[{k:'verified',t:'Cüraa sells on its own website, Amazon, Zepto and Swiggy Instamart, and Amazon is reported to contribute the largest share of sales.',s:['press']},
+      {k:'snapshot',t:'Sales channels recorded in the research: own website, Amazon, Zepto (3 products).',s:['chan']},
+      {k:'unknown',t:'Website traffic, product-page views, add-to-cart rate, checkout completion and purchase conversion are all unknown. No internal analytics were provided.',s:['hub']}],
+  interp:'Without funnel data the honest position is a map of where to look. The hesitations on each stage are hypotheses to validate with data and customer conversations, not reasons anyone has been proven to leave.',
+  next:'Which single product page has enough traffic to measure, and can the team share an anonymised funnel export for it?'})};
+CARDS.signals={n:'02',ic:'voice',title:'Customer Signals',blurb:'What sampled reviewers praise.',kick:'Chapter 2 · Customer voice',
+ build:()=>detail({tag:'observed',title:'Customer Signals',lead:'A website-wide rating of 4.9/5 across 340 reviews, plus themes from a small sample read by the researcher. This is a first signal, not a study of all 340 reviews.',
+  vis:bars([{l:'5 stars',v:324,txt:'324 · 95.3%'},{l:'4 stars',v:14,txt:'14 · 4.1%'},{l:'3 stars',v:2,txt:'2 · 0.6%'},{l:'2 stars',v:0,txt:'none',c:'mute'},{l:'1 star',v:0,txt:'none',c:'mute'}],{max:340})+'<p style="font-size:12.5px;color:var(--muted);margin-top:10px">Website-wide distribution (weighted average 4.95). It cannot be assigned to any single product.</p>',
+  ev:[{k:'observed',t:'Frother: easy to use and clean, good battery backup, creamy froth in about 30 seconds. BlendLab Pro 2.0: premium look, smooth blending, useful jars.',s:['webrev']},
+      {k:'observed',t:'Reviews appear in a shared section near the bottom of the homepage, not on each product page (one visit).',s:['webrev']},
+      {k:'snapshot',t:'Third-party estimate for ChopLab Lite: 78% five-star, 11% four, 6% three, 2% two, 3% one. Pros: compact, one-hand use. Cons: tricky blade cleaning, soft vegetables only. Aggregator summary, not verified review text.',s:['mrp']},
+      {k:'snapshot',t:'The Pro 2.0 Amazon listing appears on public pages as YFL Home by Chef Sanjyot Keer, so its reviews may sit under a different brand name from Cüraa.',s:['yfl']}],
+  interp:'Sampled praise clusters around ease of use, performance, design and value, so proof exists. Whether shoppers see it at the moment they decide is a separate question, and a brand-name mismatch on Amazon could stop shoppers finding the flagship.',
+  next:'Does a search for “Cüraa BlendLab Pro 2.0” on Amazon surface the YFL Home listing?'})};
+CARDS.perf={n:'03',ic:'perf',title:'Product Performance',blurb:'14 Amazon listings, ratings beside volume.',kick:'Chapter 3 · Amazon snapshot',
+ build:()=>detail({tag:'snapshot',title:'Product Performance',lead:'Two listings with 400+ reviews rate below 4.0: BlendLab and one electric chopper. 3 of 14 listings are under 4.0 stars. Blue bars are rated below 4.0.',
+  vis:amzBars()+'<p style="font-size:12.5px;color:var(--muted);margin-top:10px">Amazon snapshot, 27 Oct 2026 (user-reported). Review count is not sales. The two electric-chopper rows may be one listing.</p>',
+  ev:[{k:'snapshot',t:'Manual vegetable chopper leads on volume (1,075 reviews, 4.6). The frother follows (979, 4.3).',s:['amzrev']},
+      {k:'snapshot',t:'BlendLab (471, 3.9) and the ₹8,999 electric chopper (415, 3.8) pair large counts with ratings under 4.0.',s:['amzrev']},
+      {k:'unknown',t:'Units sold, revenue, returns and conversion by product are not available.',s:['matrix']}],
+  interp:'High volume with a strong rating makes the chopper and frother the best candidates for deeper review reading. A weaker rating on a high-volume listing points to friction worth diagnosing, but the star number does not say what it is.',
+  next:'What do negative reviews for BlendLab and the electric chopper say, coded by issue?'})};
+CARDS.face={n:'04',ic:'vs',title:'Competitor Face-Off',blurb:'BlendLab Pro 2.0 vs five mixer-grinders.',kick:'Chapter 4 · Benchmark',
+ build:()=>detail({tag:'snapshot',title:'Competitor Face-Off',lead:'BlendLab Pro 2.0 is a two-jar blender system, while the five comparison products are three- or four-jar mixer-grinders. No product here is a like-for-like substitute, so no winner is declared.',
+  vis:compHTML(),extra:`<h3>Side by side</h3>${compTable()}`,
+  ev:[{k:'snapshot',t:'Selling prices come from brand sites and retailer pages, October 2026. The earlier benchmark priced Sujata at ₹10,890 and Bosch at ₹11,975, but current listings show ₹8,083 and ₹6,499, so those figures look like list prices.',s:['philips','wonder','bosch','sujata']},
+      {k:'snapshot',t:'Wonderchef’s page title says 5 years on the motor, while the earlier snapshot recorded 2 years.',s:['wonder']},
+      {k:'snapshot',t:'Per watt, Pro 2.0 is cheapest of the six at ₹4.37, but a 1000 W three-jar Philips costs about ₹560 less (₹4,688 vs ₹5,249).',s:['mrp']}],
+  interp:'Pro 2.0 earns its price through blender-system use cases, not through power alone. Whether shoppers see that case on the page is the open question.',
+  next:'Can a first-time visitor say in five seconds what a two-jar blender system is for?'})};
+const CHECK=[
+ ['Validate analytics','Confirm product views, add to cart, checkout start and purchase events fire correctly, and match order records.'],
+ ['Pick one priority product','Choose the single product page with enough traffic to measure. BlendLab Pro 2.0 is a candidate; confirm it with traffic data.'],
+ ['Plan the sample size','Use the baseline conversion from real data to calculate sessions needed per version for the smallest lift worth detecting.'],
+ ['Set the duration','Run whole weeks, long enough to reach the sample size and cover weekday and weekend buying. Avoid sale periods.'],
+ ['Write decision criteria first','Define in advance what primary-metric result ships the variant, and which guardrail breaches stop it.']
+];
+const wire=(items)=>`<div class="wire">${items.map(i=>`<div class="blk ${i[1]?'new':''}">${i[0]}</div>`).join('')}</div>`;
+CARDS.exp={n:'05',ic:'flask',title:'The Growth Experiment',blurb:'One product page, one test.',kick:'Chapter 5 · Experiment',
+ build:()=>`
+ <div style="margin-top:20px">${tag('hypo')}</div>
+ <h2 id="sheetTitle">The Growth Experiment</h2>
+ <p class="lead">A single A/B test on one priority product page. The variant is a hypothesis. No result exists, and nothing here claims it will win.</p>
+ <div class="tabs" role="tablist" style="margin-top:18px">
+  <button role="tab" data-tab="a" aria-selected="true">A · Control</button>
+  <button role="tab" data-tab="b" aria-selected="false">B · Variant</button>
+  <button role="tab" data-tab="c" aria-selected="false">C · Measurement</button></div>
+ <div data-panel="a">
+  <p>The existing product page, left unchanged. It is the baseline every difference is measured against.</p>
+  <div style="margin-top:12px">${wire([['Current product page exactly as it is today',0],['Reviews on this page: not yet confirmed. The website notes only record a shared reviews section near the bottom of the homepage.',0]])}</div>
+  <p style="font-size:12.5px;color:var(--muted);margin-top:8px">Schematic only. It is not a screenshot of Cüraa's page.</p>
+ </div>
+ <div data-panel="b" hidden>
+  <p>A clearer page for the same product. Highlighted blocks are what changes.</p>
+  <div style="margin-top:12px">${wire([['Product title, price and Add to cart',0],['Short real-use demonstration video',1],['Plain-language “what makes it different” section',1],['Two or three relevant reviews of this product, placed near the buy button',1],['Delivery, warranty and return information, clearly visible',1],['Use cases and what is included in the box',1]])}</div>
+  <p style="font-size:12.5px;color:var(--muted);margin-top:8px">Schematic only. Content comes from real use, real reviews and real policies.</p>
+ </div>
+ <div data-panel="c" hidden>
+  <div class="panel"><b>Primary metric</b><p style="margin-top:6px">Purchase conversion = completed orders ÷ sessions, for the same product page, scope and time period in both versions.</p></div>
+  <div class="grid2" style="margin-top:12px">
+   <div class="panel"><b>Diagnostic metrics</b><ul style="margin:8px 0 0;padding-left:20px"><li>Add-to-cart rate</li><li>Checkout completion</li></ul></div>
+   <div class="panel"><b>Guardrails</b><ul style="margin:8px 0 0;padding-left:20px"><li>Average order value</li><li>Cancellations</li><li>Returns</li><li>Support contacts</li></ul></div>
+  </div>
+ </div>
+ <h3>Launch checklist</h3>
+ <div id="checks">${CHECK.map((c,i)=>`<label class="check"><input type="checkbox" id="ck${i}"><span><b>${c[0]}</b><br><span style="color:var(--muted);font-size:14px">${c[1]}</span></span></label>`).join('')}</div>
+ <p style="font-size:12.5px;color:var(--muted);margin-top:8px">Ticks are for your own walkthrough and reset when you close this sheet.</p>
+ <h3>Evidence behind the idea</h3>
+ ${evList([{k:'observed',t:'Sampled reviewers mention ease of use, performance, design and service, and one frother review includes a customer video.',s:['webrev']},{k:'observed',t:'Reviews appear in a shared homepage section rather than on product pages.',s:['webrev']},{k:'hypo',t:'Showing demonstration, differentiation, proof and reassurance together near the decision may raise purchase conversion for qualified visitors.',s:['hub']}])}
+ <div class="next"><b>Next question to investigate</b>Which product page has enough sessions to reach a meaningful sample size within a few weeks?</div>`};
+const BR=[
+ {k:'1 · Business question',h:'Where is the purchase journey losing high-intent shoppers?',b:()=>`<p class="lead">And what would help them decide? Cüraa sells mostly through Amazon, so the Amazon page matters at least as much as its own site. The question is about the moment a shopper compares and chooses.</p>`},
+ {k:'2 · Key evidence',h:'What the research shows',b:()=>evList([
+   {k:'verified',t:'Founded 2024; ₹40 crore Series A led by 3one4 Capital. Sells on own site, Amazon, Zepto and Swiggy Instamart; Amazon reported as the largest share. Traction figures are company claims.',s:['press','inc42']},
+   {k:'snapshot',t:'Manual chopper (1,075 reviews, 4.6) and frother (979, 4.3) lead; BlendLab (471, 3.9) and an electric chopper (415, 3.8) have large counts under 4.0.',s:['amzrev']},
+   {k:'observed',t:'Website-wide 4.9/5 across 340 reviews, shown in a shared homepage section.',s:['webrev']},
+   {k:'snapshot',t:'Amazon is cheaper than the own site on 3 of 12 products. Printed MRPs sit 42% to 51% above Cüraa selling prices, against 21% to 39% for competitors checked.',s:['amz','mrp']},
+   {k:'snapshot',t:'Pro 2.0 is cheapest per watt (₹4.37), yet a 1000 W Philips costs about ₹560 less.',s:['mrp']}])},
+ {k:'3 · Interpretation',h:'What it might mean',b:()=>`<p class="lead">Customer proof is strong in the sample, and price signals point two ways: Amazon undercuts the own site on some products, and deep printed discounts may make full-price listings look expensive. Whether shoppers see proof and a clear explanation when they decide is not yet known.</p>${tag('hypo')}`},
+ {k:'4 · Opportunity',h:'The problem most worth investigating',b:()=>`<p class="lead">A shopper on one priority product page may not see demonstration, plain-language differentiation, product-specific reviews and delivery, warranty and return details together.</p>${tag('hypo')}`},
+ {k:'5 · Biggest risk or unknown',h:'What could make this wrong',b:()=>`<p class="lead">Cüraa’s own funnel data is missing, so the size and location of any drop-off is unknown. India conversion benchmarks (1.0% to 1.3% for the nearest categories) are outside context, not Cüraa figures. The Pro 2.0 Amazon listing may sit under another brand name, and press sources disagree on where Cüraa is based.</p>${tag('unknown')}`},
+ {k:'6 · Recommendation',h:'Reveal the recommendation',reveal:1,b:()=>`
+   <h4 style="font-size:24px;text-transform:uppercase;margin:6px 0">First step</h4>
+   <p>Request an anonymised funnel export for one product, split by channel (own site and Amazon), before any page change is judged.</p>
+   <h4 style="font-size:24px;text-transform:uppercase;margin:16px 0 6px">Then experiment</h4>
+   <p>A/B test one priority product page (candidate: BlendLab Pro 2.0). The variant adds a real-use demo, plain-language differentiation, nearby product reviews, and visible delivery, warranty and returns. Primary metric: orders ÷ sessions. Guardrails: average order value, cancellations, returns, support contacts.</p>`}
+];
+CARDS.brief={n:'06',ic:'doc',title:'The Founder Brief',blurb:'A seven-point summary with a reveal.',kick:'Chapter 6 · Founder brief',
+ build:()=>`<h2 id="sheetTitle" style="margin-top:22px">The Founder Brief</h2><div class="vis" id="brief"></div>`};
+let briefI=0,briefReveal=false;
+const renderBrief=()=>{const s=BR[briefI],box=$('#brief');if(!box)return;
+ const hide=s.reveal&&!briefReveal;
+ box.innerHTML=`<div class="slide"><span class="eyebrow" style="color:var(--red)">${s.k}</span><h3>${s.h}</h3>${hide?`<p class="lead" style="color:var(--muted)">Based on everything before this slide.</p><div><button class="btn red" id="revealBtn">Reveal the Recommendation</button></div>`:s.b()}</div>
+ <div class="pager"><button class="btn ghost" style="background:var(--surface2);color:var(--fg)" data-bp="-1" ${briefI==0?'disabled':''}>← Back</button><button class="btn red" data-bp="1" ${briefI==BR.length-1?'disabled':''}>Next →</button><div class="pips">${BR.map((_,i)=>`<span class="pip ${i==briefI?'on':''}"></span>`).join('')}</div></div>`};
+S.blab={l:'Price tracker: BlendLab listing',u:'https://www.pricebefore.com/cueraa-blendlab-mixer-grinder-kitchen-3-p844117.html'};
+const facts=rows=>`<div class="scroll"><table style="min-width:0"><tbody>${rows.map(r=>`<tr><th style="width:38%">${r[0]}</th><td>${r[1]}</td></tr>`).join('')}</tbody></table></div>`;
+CARDS.p_pro={n:'',ic:'blender',title:'BlendLab Pro 2.0',blurb:'Flagship blender system, ₹5,249 on Amazon.',kick:'Product · Blend & Mix',
+ build:()=>detail({tag:'snapshot',title:'BlendLab Pro 2.0',lead:'The flagship in the benchmark. It is a two-jar blender system with preset modes, so it is not a like-for-like match for a three-jar mixer-grinder.',
+  vis:facts([['Own website','₹5,499 to ₹5,549'],['Amazon','₹5,249 · 4.4/5 · 493 reviews (listing appears as YFL Home)'],['Printed MRP','₹8,999, so 41.7% below MRP'],['Spec','1200W · 1000ml and 700ml Tritan jars · 2-year warranty and 7-day return window recorded']]),
+  ev:[{k:'snapshot',t:'Prices and rating from the 27 Oct 2026 snapshots. Amazon is 5.4% cheaper than the own site.',s:['site','amz']},
+      {k:'snapshot',t:'The earlier benchmark’s ₹5,999 equals the printed MRP of the original BlendLab, so it was probably a mislabelled list price.',s:['mrp']},
+      {k:'snapshot',t:'Listing text: 1200W, Smart Blend, Power Blend and Pulse modes.',s:['blendlab']},
+      {k:'observed',t:'Sampled reviewers cite premium look, smooth blending and useful jars.',s:['webrev']}],
+  interp:'A higher-priced product in a different format needs a clear explanation of who it is for. That is where product-page education could matter most.',
+  next:'Is the Amazon listing under YFL Home, and can shoppers searching for Cüraa find it?'})};
+CARDS.p_chop={n:'',ic:'chopper',title:'Manual Vegetable Chopper',blurb:'Most Amazon reviews: 1,075 at 4.6/5.',kick:'Product · Chop & Dice',
+ build:()=>detail({tag:'snapshot',title:'Manual Vegetable Chopper',lead:'The highest review volume in the captured Cüraa list, with a strong rating.',
+  vis:facts([['Amazon rating','4.6/5 · 1,075 reviews'],['Similar listing','Manual Kitchen Chopper · 4.5/5 · 182 reviews'],['Price','Not captured in the snapshot']]),
+  ev:[{k:'snapshot',t:'Rating and count recorded 27 October 2026.',s:['amzrev']},
+      {k:'unknown',t:'An earlier ₹5,999 price looked inconsistent with a manual chopper and is not used here.',s:['amz']}],
+  interp:'Volume and rating make it a strong candidate for review reading, for example to learn which phrases could inform copy on other pages.',
+  next:'What is the live price, and which phrases recur across its reviews?'})};
+CARDS.p_frot={n:'',ic:'frother',title:'Rechargeable Coffee Frother',blurb:'979 reviews at 4.3/5, ₹815 on both channels.',kick:'Product · Blend & Mix',
+ build:()=>detail({tag:'snapshot',title:'Rechargeable Coffee Frother',lead:'High review volume at a low price, with the clearest praise in the website review sample.',
+  vis:facts([['Own website','₹815'],['Amazon','₹815 · 4.3/5 · 979 reviews'],['Price gap','0.0%']]),
+  ev:[{k:'snapshot',t:'Prices and rating recorded 27 October 2026.',s:['site','amzrev']},
+      {k:'observed',t:'Reviewers mention ease of use and cleaning, battery backup, creamy froth in about 30 seconds, and one customer video.',s:['webrev']}],
+  interp:'A simple, low-priced product with repeatable benefits. Its review language could inform copy for other pages.',
+  next:'Which phrases recur across a consistent sample of Amazon reviews, positive and negative?'})};
+CARDS.p_dani={n:'',ic:'dani',title:'Masala Dani',blurb:'Wooden 517 reviews at 4.1; steel 292 at 4.1.',kick:'Product · Kitchen Essentials',
+ build:()=>detail({tag:'snapshot',title:'Masala Dani',lead:'Two versions with similar ratings. The steel version costs 9.1% more on Amazon than on the own site, the widest gap among the lower-priced products.',
+  vis:facts([['Wooden','Own ₹1,699 · Amazon ₹1,707 · 4.1/5 · 517 reviews'],['Stainless steel','Own ₹1,099 · Amazon ₹1,199 · 4.1/5 · 292 reviews']]),
+  ev:[{k:'snapshot',t:'Prices, ratings and counts recorded 27 October 2026.',s:['site','amzrev']}],
+  interp:'A rating near 4.1 with this many reviews suggests some friction worth reading for. The star number does not say what it is.',
+  next:'What do the 3-star and lower reviews of the dani complain about?'})};
+CARDS.p_pep={n:'',ic:'grinder',title:'Electric Pepper Grinder',blurb:'437 reviews at 4.2/5, ₹1,099.',kick:'Product · Kitchen Essentials',
+ build:()=>detail({tag:'snapshot',title:'Electric Pepper Grinder',lead:'A small product with solid review volume. The brand on the Amazon page still needs confirming before it is treated as a Cüraa listing.',
+  vis:facts([['Own website','₹1,099'],['Amazon','₹1,099 · 4.2/5 · 437 reviews']]),
+  ev:[{k:'snapshot',t:'Prices, rating and count recorded 27 October 2026; same price on both channels.',s:['site','amzrev']},
+      {k:'unknown',t:'Exact Amazon listing and seller identity not yet confirmed.',s:['matrix']}],
+  interp:'Matching price on the Cüraa site suggests it is part of the range, but confirmation comes first.',
+  next:'Does the Amazon listing name Cüraa as the brand?'})};
+CARDS.p_bl={n:'',ic:'blender',title:'BlendLab',blurb:'Amazon: 471 reviews at 3.9/5.',kick:'Product · Blend & Mix',
+ build:()=>detail({tag:'snapshot',title:'BlendLab',lead:'The original BlendLab, a 400 W model with a weaker rating on meaningful review volume. Not the same product as BlendLab Pro 2.0.',
+  vis:facts([['Own website','₹3,449'],['Amazon','₹3,499 · 3.9/5 · 471 reviews'],['Printed MRP','₹5,999 against a ₹2,949 selling price (50.8% off)'],['Spec','400W · 2-year warranty']]),
+  ev:[{k:'snapshot',t:'Own-site and Amazon figures recorded 27 October 2026.',s:['site','amzrev']},
+      {k:'snapshot',t:'A price tracker lists the 400W model with a 2-year warranty.',s:['mrp']},
+      {k:'unknown',t:'Reasons behind the 3.9 rating are not yet identified.',s:['matrix']}],
+  interp:'A mid-priced product with a softer rating. Diagnosing the complaints matters before spending to grow it.',
+  next:'Which issues recur in the negative reviews: performance, durability, noise or expectations?'})};
+CARDS.e_themes={n:'',ic:'voice',title:'Customer Review Themes',blurb:'What sampled reviewers mention.',kick:'Evidence · Reviews',
+ build:()=>detail({tag:'observed',title:'Customer Review Themes',lead:'Themes noted by the researcher from a small sample of own-website reviews. Ticks mean the theme was noted for that product, not that it holds for all customers.',
+  vis:`<div class="scroll"><table><thead><tr><th>Theme</th><th>Frother</th><th>BlendLab Pro 2.0</th><th>Scale</th><th>Grinder</th></tr></thead><tbody>
+  <tr><td>Performance</td><td>✓</td><td>✓</td><td></td><td>✓</td></tr><tr><td>Ease of use and cleaning</td><td>✓</td><td></td><td>✓</td><td></td></tr>
+  <tr><td>Design and looks</td><td></td><td>✓</td><td>✓ compact</td><td></td></tr><tr><td>Build, value, accessories</td><td>✓</td><td>✓</td><td></td><td>✓</td></tr>
+  <tr><td>Customer support</td><td></td><td></td><td></td><td>✓</td></tr></tbody></table></div>`,
+  ev:[{k:'observed',t:'Observations are paraphrased from a sample. Exact wording, dates and reviewer details were not captured.',s:['webrev']},
+      {k:'unknown',t:'Negative themes from Amazon reviews have not been coded yet.',s:['matrix']}],
+  interp:'Positive themes are consistent with a product people like. They say little about why some visitors do not buy.',
+  next:'What do 3-star and lower reviews say, and do any mention warranty, returns or delivery?'})};
+CARDS.chan={n:'',ic:'price',title:'Channel Price Gap',blurb:'Amazon is cheaper on 3 of 12 products.',kick:'Catalogue · Own site vs Amazon',
+ build:()=>detail({tag:'snapshot',title:'Channel Price Gap',lead:'Amazon price compared with own-site price, % difference. Blue bars mean Amazon is cheaper; grey bars mean Amazon is the same or dearer.',
+  vis:chBars()+'<p style="font-size:12.5px;color:var(--muted);margin-top:10px">Snapshots, 27 Oct 2026. Amazon coupons and bank offers are not included. Hand mixer and measuring spoons are out of stock on the own site.</p>',
+  ev:[{k:'snapshot',t:'Amazon undercuts the own site on the hand mixer (−34.2%), IndiPro Induction (−6.4%) and BlendLab Pro 2.0 (−5.4%).',s:['site','amz']},
+      {k:'snapshot',t:'ChopLab Neo, measuring spoons and the steel dani cost more on Amazon.',s:['site','amz']}],
+  interp:'A shopper who compares channels sees a cheaper Pro 2.0 and IndiPro on Amazon, where review counts are also visible. That is a hypothesis about behaviour, not a finding.',
+  next:'How many own-site sessions for these products come from shoppers who also check Amazon?'})};
+CARDS.e_disc={n:'',ic:'price',title:'The MRP Question',blurb:'Cüraa lists 42% to 51% below MRP.',kick:'Evidence · Discounting',
+ build:()=>detail({tag:'snapshot',title:'The MRP Question',lead:'Cüraa’s printed MRPs are roughly double the selling price, a deeper gap than every mixer-grinder brand checked. MRP is a list price, not a price most shoppers ever pay.',
+  vis:bars([{l:'Cüraa BlendLab',sub:'₹2,949 vs ₹5,999',v:50.8,txt:'50.8%'},{l:'Cüraa IndiPro Induction',sub:'₹3,999 vs ₹7,999',v:50.0,txt:'50.0%'},{l:'Cüraa BlendLab Pro 2.0',sub:'₹5,249 vs ₹8,999',v:41.7,txt:'41.7%'},{l:'Bosch TrueMixx Pro',sub:'₹6,499 vs ₹10,590',v:38.6,txt:'38.6%',c:'mute'},{l:'Wonderchef Capri 550W',sub:'₹2,799 vs ₹4,500',v:37.8,txt:'37.8%',c:'mute'},{l:'Sujata Dynamix',sub:'₹8,083 vs ₹11,430',v:29.3,txt:'29.3%',c:'mute'},{l:'Philips HL7773/02',sub:'₹4,199 vs ₹5,295',v:20.7,txt:'20.7%',c:'mute'}],{max:55})+'<p style="font-size:12.5px;color:var(--muted);margin-top:10px">Selling price below printed MRP. Mixed dates and sources, Oct 2026.</p>',
+  ev:[{k:'snapshot',t:'Cüraa listings sit 41.7% to 50.8% below MRP; competitors checked sit 20.7% to 38.6% below.',s:['mrp']},
+      {k:'snapshot',t:'The Pro 2.0 price is the Amazon snapshot; its MRP comes from a listing aggregator.',s:['mrp']}],
+  interp:'Two hypotheses to check. A high MRP makes a discounted price look like a bargain, which may help on Amazon but could make full-price own-site listings look expensive beside it. And the ₹5,999 once recorded for Pro 2.0 may be a mislabelled list price.',
+  next:'Does the own site show an MRP and a discount, or only the selling price?'})};
+CARDS.e_mkt={n:'',ic:'perf',title:'Market Context',blurb:'A mature category growing about 5% a year.',kick:'Evidence · Market',
+ build:()=>detail({tag:'snapshot',title:'Market Context',lead:'The category is mature and slow-growing, so Cüraa’s growth has to come from share and from newer product formats rather than a rising market.',
+  vis:bars([{l:'2025 (estimate)',v:0.541,txt:'USD 0.541 bn',c:'mute'},{l:'2026 (estimate)',v:0.568,txt:'USD 0.568 bn',c:'mute'},{l:'2032 (forecast)',v:0.76,txt:'USD 0.760 bn',c:'alt'}],{max:0.8})+'<p style="font-size:12.5px;color:var(--muted);margin-top:10px">India mixer-grinder market, MarkNtel Advisors. Bars start at zero. Implied 2026 to 2032 growth is about 5% a year.</p>',
+  extra:'<h3>Shape of the market</h3>'+facts([['Online share','About 70% of 2026 revenue'],['Mixer grinders','About 60% of the category'],['Top five companies','About 55% combined: Bajaj Electricals, Versuni India, Groupe SEB India, TTK Prestige, Crompton'],['Largest region','South India, about 30%, tied to batter and chutney cooking']]),
+  ev:[{k:'snapshot',t:'One publisher’s estimates; the report gives no price-tier or wattage shares.',s:['mark']}],
+  interp:'With online at about 70% and Amazon Cüraa’s biggest channel, the marketplace page is where most of the competition for share plays out.',
+  next:'What share of Cüraa’s orders comes from Amazon versus the own site?'})};
+CARDS.e_conv={n:'',ic:'flask',title:'Conversion Benchmarks',blurb:'Outside context, not Cüraa figures.',kick:'Evidence · Benchmarks',
+ build:()=>detail({tag:'snapshot',title:'Conversion Benchmarks',lead:'With no Cüraa funnel data, outside benchmarks show what a normal range looks like. They are context for the questions, not a target. No home-and-kitchen category is reported; red marks the nearest ones.',
+  vis:bars([['Books and stationery',2.4],['Grocery and essentials',2.2],['Beauty and health',2.0],['Kids and baby',2.0],['Pet care',1.8],['Health supplements',1.8],['Toys and games',1.6],['General e-commerce',1.6],['Jewellery',1.4],['Home decor',1.3],['Fashion',1.2],['Fitness equipment',1.2],['Home furniture',1.0],['Electronics',1.0]].map(r=>({l:r[0],v:r[1],txt:r[1].toFixed(1)+'%',c:['Home decor','Home furniture','Electronics'].includes(r[0])?'':'mute'})),{max:2.6})+'<p style="font-size:12.5px;color:var(--muted);margin-top:10px">Indian e-commerce conversion, % of sessions. Methodology and sample are not stated.</p>'
+   +'<h3 style="margin-top:22px">Why shoppers abandon carts (global)</h3>'+bars([{l:'Extra costs too high',sub:'shipping, tax, fees',v:39,txt:'39%'},{l:'Delivery was too slow',v:21,txt:'21%',c:'mute'},{l:'Did not trust the site with card details',v:19,txt:'19%',c:'mute'}],{max:45}),
+  ev:[{k:'snapshot',t:'Nearest categories convert at 1.0% (electronics, home furniture) to 1.3% (home decor); the general average is 1.6%.',s:['noir']},
+      {k:'unknown',t:'A Razorpay guide says most Indian D2C brands convert at about 2% and Amazon and Flipkart at about 10%, but cites no source, so treat both as unverified.',s:['razor']},
+      {k:'snapshot',t:'Baymard Institute reasons as quoted by ClickPost; global average abandonment is 70.22%, not India-specific.',s:['click']}],
+  interp:'Two of the three abandonment reasons, cost clarity and delivery time, can be stated in advance on a product page and at checkout. That is why delivery, returns and warranty are part of the proposed test.',
+  next:'What is Cüraa’s own baseline conversion for one product, by channel?'})};
+const HYP=[
+ ['Proof is not near the buying decision','Reviews sit in a shared homepage section (one visit)','Add product-specific reviews to one product page; compare conversion'],
+ ['Price-value is unclear','Amazon cheaper than own site on 3 of 12 products; MRP 42% to 51% above selling price; Pro 2.0 costs more than a 1000 W Philips','Price and offer test; buyer and non-buyer interviews'],
+ ['Differentiation is not obvious','Pro 2.0 is a two-jar blender system among three-jar mixer-grinders','Five-second page test; ask shoppers what the product is for'],
+ ['Performance expectations are not set','BlendLab 3.9 and an electric chopper 3.8, 400+ reviews each','Code negative reviews by issue'],
+ ['Warranty and returns are hard to find','2-year warranty and 7-day return window recorded; visibility on pages unknown','Audit product pages; add a visible block in the test'],
+ ['Delivery cost or time causes exits','Global data only: extra costs 39%, slow delivery 21%','Checkout step drop-off by shipping cost shown'],
+ ['Shoppers compare channels and leave the own site','Amazon is the largest channel and cheaper on 3 products','Orders and sessions by channel and product'],
+ ['Marketplace listing is under another brand name','Pro 2.0 listing appears as YFL Home','Search Amazon for “Cüraa BlendLab Pro 2.0” and compare results']];
+CARDS.e_hyp={n:'',ic:'flask',title:'Hypotheses to Test',blurb:'Eight possible reasons shoppers do not buy.',kick:'Evidence · Hypotheses',
+ build:()=>detail({tag:'hypo',title:'Hypotheses to Test',lead:'Each row is a possible reason a high-intent shopper does not buy. None is a finding, and every one is currently weak on evidence.',
+  vis:`<div class="scroll"><table><thead><tr><th>Hypothesis</th><th>Evidence so far</th><th>How to test</th></tr></thead><tbody>${HYP.map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td>${r[2]}</td></tr>`).join('')}</tbody></table></div>`,
+  ev:[{k:'hypo',t:'Strength is weak for all eight. The delivery hypothesis rests on external global data only.',s:['hub']}],
+  interp:'The first four are testable on one page with one A/B test; the last two need channel-level data.',
+  next:'Which hypotheses can a single product-page test separate, and which need interviews?'})};
+CARDS.e_diff={n:'',ic:'diff',title:'Product Differentiation',blurb:'How the listings describe themselves.',kick:'Evidence · Positioning',
+ build:()=>detail({tag:'snapshot',title:'Product Differentiation',lead:'What each listing emphasises. These are the sellers’ own descriptions, not tested performance.',
+  vis:`<div class="grid2"><div class="panel"><b>BlendLab Pro 2.0</b><ul style="margin:8px 0 0;padding-left:20px"><li>1200W copper motor</li><li>Smart Blend (45 s), Power Blend (60 s), Pulse</li><li>Two jars: 1000 ml and 700 ml, unbreakable Tritan</li><li>Storage and sipper lids</li></ul></div>
+  <div class="panel"><b>Philips HL7773/02</b><ul style="margin:8px 0 0;padding-left:20px"><li>800W motor, MicroGrind technology</li><li>Coarse, fine and super-fine modes</li><li>Three stainless-steel, leak-proof jars</li><li>Established brand</li></ul></div></div>`,
+  ev:[{k:'snapshot',t:'BlendLab Pro 2.0 feature list from a third-party listing.',s:['blendlab']},{k:'snapshot',t:'Philips features from the brand’s own page.',s:['philips']}],
+  interp:'The two products solve slightly different jobs. A shopper has to be shown that difference quickly, which is the case for plain-language differentiation on the page.',
+  next:'In customer interviews, which use case would make someone choose a two-jar blender system over a three-jar mixer-grinder?'})};
+CARDS.e_trust={n:'',ic:'shield',title:'Trust and Reassurance',blurb:'Warranty, returns, service, proof.',kick:'Evidence · Trust',
+ build:()=>detail({tag:'hypo',title:'Trust and Reassurance',lead:'What a hesitant shopper might want to see before buying. The pieces exist in the notes. Whether they are visible on product pages is not confirmed.',
+  vis:facts([['Warranty','2 years recorded for BlendLab Pro 2.0'],['Returns','7-day window recorded in the earlier benchmark'],['Customer proof','4.9/5 across 340 website reviews, website-wide'],['Service','At least one reviewer praised support'],['Delivery','Not captured']]),
+  ev:[{k:'snapshot',t:'Warranty and return window recorded in the benchmark.',s:['comp']},{k:'observed',t:'Website-wide rating and a service mention from the sample.',s:['webrev']},{k:'hypo',t:'Making these visible near the buy button may reduce hesitation. This is untested.',s:['hub']}],
+  interp:'Reassurance may be available but scattered. Showing it together is cheap to test.',
+  next:'Where on the product page are warranty, returns and delivery shown today?'})};
+CARDS.e_miss={n:'',ic:'hole',title:'Missing Data',blurb:'What cannot be claimed yet.',kick:'Evidence · Gaps',
+ build:()=>detail({tag:'unknown',title:'Missing Data',lead:'Everything below is unavailable or unconfirmed, so no number is shown for it anywhere in this experience.',
+  vis:`<div class="scroll"><table><thead><tr><th>Item</th><th>Status</th><th>Needed</th></tr></thead><tbody>
+  <tr><td>Traffic and sources</td><td>Unknown</td><td>Sessions by channel</td></tr>
+  <tr><td>Add-to-cart, checkout, purchase rates</td><td>Unknown</td><td>Funnel export by product and channel</td></tr>
+  <tr><td>Orders and revenue by product</td><td>Unknown</td><td>Orders and realised price</td></tr>
+  <tr><td>Returns, cancellations, support issues</td><td>Unknown</td><td>Rates and reasons</td></tr>
+  <tr><td>Amazon prices, ratings, counts</td><td>User-reported, 27 Oct 2026</td><td>Recheck on live listings</td></tr>
+  <tr><td>Own-site prices</td><td>User-reported</td><td>Recheck on the live site</td></tr>
+  <tr><td>Negative review themes</td><td>Not coded</td><td>Written text of Amazon reviews</td></tr>
+  <tr><td>Quora and Reddit</td><td>No Cüraa-specific posts found</td><td>Exact URLs if any exist</td></tr>
+  <tr><td>Company base facts</td><td>Sources disagree on headquarters: New Delhi, Bengaluru, Mumbai</td><td>Confirm with the company</td></tr></tbody></table></div>`,
+  ev:[{k:'unknown',t:'Review counts are not sales, and nothing here estimates sales. Traction figures such as 3 lakh households and 25x monthly net revenue are company claims without a base figure.',s:['press','inc42']}],
+  interp:'The case is strong on questions and honest about gaps. The first job is closing the funnel-data gap.',
+  next:'Who at Cüraa can export an anonymised funnel report for one product, split by channel?'})};
+const R1=['gap','signals','perf','face','exp','brief'];
+const R2=['chan','p_pro','p_chop','p_frot','p_dani','p_pep','p_bl'];
+const R3=['e_themes','e_disc','e_mkt','e_conv','e_hyp','e_diff','e_trust','e_miss'];
+const KNOW=[
+ ['verified','Reported in public press',['Founded 2024; ₹40 crore Series A led by 3one4 Capital.','Sells on own website, Amazon, Zepto and Swiggy Instamart; Amazon reported as the largest sales share.','Traction figures (3 lakh households, 25x monthly net revenue) are company claims.']],
+ ['snapshot','Captured snapshots, to recheck',['Amazon ratings, counts and prices (27 Oct 2026, user-reported); 3 of 14 listings under 4.0 stars.','Amazon cheaper than the own site on 3 of 12 products.','Printed MRPs 42% to 51% above Cüraa selling prices; competitor selling prices from brand and retailer pages.']],
+ ['observed','Observed in sampled reviews',['Website-wide 4.9/5 across 340 reviews.','Themes: ease of use, performance, design, value, service.','Reviews sit in a shared homepage section (one visit).']],
+ ['hypo','Hypotheses to validate',['Proof placement, price-value, differentiation, performance expectations, warranty and returns, delivery, channel comparison, brand-name mismatch on Amazon.','A clearer product page may raise purchase conversion.']],
+ ['unknown','Still to prove',['Traffic, funnel conversion, product sales and revenue, returns, cancellations, support issues.','Why non-buyers hesitate.','Which brand name the Pro 2.0 Amazon listing carries.']]];
+const cardHTML=id=>{const c=CARDS[id];return `<button class="card" data-open="${id}"><div class="thumb">${icon(c.ic)}${c.n?`<span class="num">${c.n}</span>`:''}</div><div class="card-b"><h3>${c.title}</h3><p>${c.blurb}</p></div></button>`};
+$('#rail1').innerHTML=R1.map(cardHTML).join('');
+$('#rail2').innerHTML=R2.map(cardHTML).join('');
+$('#rail3').innerHTML=R3.map(cardHTML).join('');
+$('#knowBox').innerHTML=KNOW.map((k,i)=>`<details ${i==4?'open':''}><summary><span>${tag(k[0])} &nbsp;${k[1]}</span></summary><div class="in"><ul style="margin:0;padding-left:20px">${k[2].map(x=>`<li>${x}</li>`).join('')}</ul></div></details>`).join('');
+$('#srcList').innerHTML=Object.values(S).filter(s=>s.u).map(s=>`<li><a class="src" href="${s.u}" target="_blank" rel="noopener">${esc(s.l)}</a></li>`).join('');
+
+const sheet=$('#sheet');let lastFocus=null;
+const openSheet=id=>{const c=CARDS[id];if(!c)return;lastFocus=document.activeElement;
+ briefI=0;briefReveal=false;
+ $('#sheetKicker').textContent=c.kick;$('#sheetBody').innerHTML=c.build();
+ sheet.hidden=false;sheet.scrollTop=0;document.body.style.overflow='hidden';
+ if(id==='gap')$('#fDetail').innerHTML=stageDetail(1);
+ if(id==='brief')renderBrief();
+ $('#closeBtn').focus();};
+const closeSheet=()=>{sheet.hidden=true;document.body.style.overflow='';$('#sheetBody').innerHTML='';if(lastFocus&&lastFocus.focus)lastFocus.focus();};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!sheet.hidden)closeSheet()});
+document.addEventListener('click',e=>{
+ const t=e.target.closest('button,a');if(!t)return;
+ if(t.id==='closeBtn')return closeSheet();
+ if(t.dataset.open)return openSheet(t.dataset.open);
+ if(t.dataset.stage!==undefined){$$('.stage').forEach(b=>b.setAttribute('aria-pressed',b===t));$('#fDetail').innerHTML=stageDetail(+t.dataset.stage);return}
+ if(t.dataset.metric){$$('[data-metric]').forEach(b=>b.setAttribute('aria-selected',b===t));$('#compChart').innerHTML=compBars(t.dataset.metric);return}
+ if(t.dataset.tab){$$('[data-tab]').forEach(b=>b.setAttribute('aria-selected',b===t));$$('[data-panel]').forEach(p=>p.hidden=p.dataset.panel!==t.dataset.tab);return}
+ if(t.dataset.bp){briefI=Math.min(BR.length-1,Math.max(0,briefI+ +t.dataset.bp));renderBrief();return}
+ if(t.id==='revealBtn'){briefReveal=true;renderBrief();return}
+ if(t.id==='themeBtn'){const r=document.documentElement;const dark=r.dataset.theme?r.dataset.theme==='dark':!matchMedia('(prefers-color-scheme: light)').matches;r.dataset.theme=dark?'light':'dark'}
+});
+</script>
